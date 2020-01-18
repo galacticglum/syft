@@ -1,3 +1,5 @@
+import re
+import string
 import argparse
 from enum import Enum
 from pathlib import Path
@@ -17,10 +19,13 @@ class SearchMode(Enum):
 
 parser = argparse.ArgumentParser(description='The core search engine.')
 parser.add_argument('input', type=str, help='The path to the input audio file.')
-# parser.add_argument('search', type=str, help='The search term.')
+parser.add_argument('query', type=str, help='The search query.')
 parser.add_argument('--search-mode', type=SearchMode, choices=list(SearchMode))
+parser.add_argument('--regex', dest='regex', help='Enable regular expression pattern matching.', action='store_true')
 parser.add_argument('--auth', dest='auth_json_filepath', type=str, help='The path to the service account credentials file.')
+
 args = parser.parse_args()
+args.query = args.query.lower()
 
 speech_client = speech.SpeechClient.from_service_account_json(args.auth_json_filepath)
 storage_client = storage.Client.from_service_account_json(args.auth_json_filepath)
@@ -56,9 +61,21 @@ with open(Path(args.input), 'rb') as audio_file:
     operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
     op_result = operation.result()
     for result in op_result.results:
-        print('=' * 20)
-        print('{} alternative(s) found'.format(len(result.alternatives)))
-        # print(result.alternatives[0].transcript)
-        print(nltk.tokenize.sent_tokenize(result.alternatives[0].transcript))
+        # Check if the response is valid, which happens if and only if the result alternatives
+        # is at least of length 1 AND the transcript is non-empty.
+        if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue
+        print('='*20)
+        print(result.alternatives[0].transcript)
+        
+        if args.search_mode == SearchMode.WORD:
+            for word_info in result.alternatives[0].words:
+                # Remove punctuation from word
+                raw_word = word_info.word.translate(str.maketrans('', '', string.punctuation)).lower()
+                matched = re.search(args.query, raw_word) if args.regex else raw_word == args.query
+                if matched:
+                    print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(args.query, \
+                        word_info.start_time.seconds, word_info.start_time.nanos, \
+                        word_info.end_time.seconds, word_info.end_time.nanos))
+
+        # print(nltk.tokenize.sent_tokenize(result.alternatives[0].transcript))
         # print(result.alternatives[0].confidence)
-        # print(result.alternatives[0].words)
