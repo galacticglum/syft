@@ -3,9 +3,9 @@ from pathlib import Path
 from datetime import timedelta
 import api.hash_util as hash_util
 
-from google.cloud import speech, storage
-from google.cloud.speech import enums
-from google.cloud.speech import types
+from google.cloud import speech_v1p1beta1 as speech, storage
+from google.cloud.speech_v1p1beta1 import enums
+from google.cloud.speech_v1p1beta1 import types
 
 parser = argparse.ArgumentParser(description='The core search engine.')
 parser.add_argument('input', type=str, help='The path to the input audio file.')
@@ -34,11 +34,12 @@ with open(Path(args.input), 'rb') as audio_file:
     blob_uri = 'gs://{}/{}'.format(BUCKET_NAME, blob_filename)
 
     config = types.RecognitionConfig(
-        encoding=enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
-        sample_rate_hertz=44100,
+        encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        enable_speaker_diarization=True,
         language_code='en-US')
 
-    operation = speech_client.long_running_recognize(config, {'uri': blob_uri})
+    operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
     op_result = operation.result()
     for result in op_result.results:
         print('=' * 20)
