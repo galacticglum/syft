@@ -46,6 +46,15 @@ def normalize_text(text):
     '''
     return text.translate(str.maketrans('', '', string.punctuation)).strip().lower()
 
+def find_sub_list(source, sublist):
+    results = []
+    len_sublist = len(sublist)
+    for index in (i for i, e in enumerate(source) if e == sublist[0]):
+        if source[index:index + len_sublist] == sublist:
+            results.append((index, index + len_sublist - 1))
+
+    return results
+
 with open(Path(args.input), 'rb') as audio_file:
     # Upload the file to GCS if it doesn't already exists
     blob_root = BUCKET_AUDIO_ROOT
@@ -72,8 +81,9 @@ with open(Path(args.input), 'rb') as audio_file:
         # Check if the response is valid, which happens if and only if the result alternatives
         # is at least of length 1 AND the transcript is non-empty.
         if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue
-        print('='*20)
+        # print('='*20)
         # print(result.alternatives[0].transcript)
+        # print('-'*20)
         
         if args.search_mode == SearchMode.WORD:
             for word_info in result.alternatives[0].words:
@@ -86,9 +96,42 @@ with open(Path(args.input), 'rb') as audio_file:
                         word_info.end_time.seconds, word_info.end_time.nanos))
         elif args.search_mode == SearchMode.STRING:
             sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
+            tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
+
             for sentence in sentences:
-                matches = re.findall(args.query, sentence)
+                sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
+                sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
+                # print(['{}'.format(word_info.word) for word_info in sentence_word_infos])
+
+                matches = re.finditer(args.query, sentence)       
+                match_results = set()
                 for match in matches:
-                    print('Found match (query=\'{}\').'.format(args.query))
+                    start_boundary = i = match.start()
+                    
+                    # Check if the match starts inside a word
+                    if i != 0 and sentence[i - 1] != ' ':
+                        start_boundary = sentence.rfind(' ', 0, i) + 1
+
+                    end_boundary = j = match.end() - 1
+
+                    # Check if the match ends inside a word
+                    if j != len(sentence) - 1 and sentence[j + 1] != ' ':
+                        end_boundary = sentence.find(' ', j)
+                        if end_boundary == -1:
+                            end_boundary = len(sentence) - 1
+                        else:
+                            end_boundary -= 1
+
+                    # Add boundary
+                    boundary = (start_boundary, end_boundary)
+                    if boundary in match_results: continue
+                    match_results.add(boundary)
+
+                    start_word = sentence_word_infos[sentence.count(' ', 0, start_boundary)]
+                    end_word = sentence_word_infos[sentence.count(' ', 0, end_boundary)]
+
+                    print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(args.query,
+                        start_word.start_time.seconds, start_word.start_time.nanos, \
+                        end_word.end_time.seconds, end_word.end_time.nanos))
 
         # print(result.alternatives[0].confidence)
