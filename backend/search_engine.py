@@ -86,11 +86,9 @@ with open(Path(args.input), 'rb') as audio_file:
                         word_info.end_time.seconds, word_info.end_time.nanos))
         elif args.search_mode == SearchMode.STRING:
             sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
-            print(sentences)
             for sentence in sentences:
                 matches = re.findall(args.query, sentence)
                 for match in matches:
-                    # print(sentence)
                     print('Found match (query=\'{}\').'.format(args.query))
 
         # print(result.alternatives[0].confidence)
