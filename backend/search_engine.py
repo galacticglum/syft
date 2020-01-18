@@ -27,18 +27,19 @@ with open(Path(args.input), 'rb') as audio_file:
         blob.upload_from_file(audio_file, rewind=True)
 
     # blob URI is valid for one hour
-    expiration = timedelta(hours=1)
-    blob_uri = blob.generate_signed_url(expiration)
+    # expiration = timedelta(hours=1)
+    # blob_uri = blob.generate_signed_url(expiration)
+    blob_uri = 'gs://{}/{}'.format(BUCKET_NAME, blob_filename)
+    
+    config = types.RecognitionConfig(
+        encoding=enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
+        sample_rate_hertz=16000,
+        language_code='en-US')
 
-# config = types.RecognitionConfig(
-#     encoding=enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
-#     sample_rate_hertz=16000,
-#     language_code='en-US')
-
-# operation = speech_client.long_running_recognize(config, audio)
-# op_result = operation.result()
-# for result in op_result.results:
-#     for alternative in result.alternatives:
-#         print('=' * 20)
-#         print(alternative.transcript)
-#         print(alternative.confidence)
+    operation = speech_client.long_running_recognize(config, {'uri': blob_uri})
+    op_result = operation.result()
+    for result in op_result.results:
+        for alternative in result.alternatives:
+            print('=' * 20)
+            print(alternative.transcript)
+            print(alternative.confidence)
