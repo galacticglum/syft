@@ -47,3 +47,8 @@ input {
     border-radius: 1rem !important;
     line-height: 100px;
 }
+
+.dropzone-active, .dropzone:active {
+    color: #222;
+    border-color: #222;
+}

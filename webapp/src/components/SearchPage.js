@@ -26,12 +26,6 @@ export default class SearchPage extends Component {
     }
 
     render() {
-        const files = this.state.files.map(file => (
-            <li key={file.name}>
-                {file.name} - {file.size} bytes
-            </li>
-        ));
-      
         return (
             <Container>
                 <Row>
@@ -39,9 +33,9 @@ export default class SearchPage extends Component {
                         <h1 className="text-center display-1 my-5 title-text">Syft</h1>
                         <Card className="my-5">
                             <CardBody>
-                                <Dropzone onDrop={this.onDrop}>
-                                    {({getRootProps, getInputProps}) => (
-                                    <div {...getRootProps({className: 'dropzone my-4'})}>
+                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize="104857600">
+                                    {({getRootProps, getInputProps, isDragActive}) => (
+                                    <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
                                         <input {...getInputProps()} />
                                         <p className="text-center">Drag 'n' drop a file, or click to get started</p>
                                     </div>
