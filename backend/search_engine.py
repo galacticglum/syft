@@ -25,7 +25,6 @@ parser = argparse.ArgumentParser(description='The core search engine.')
 parser.add_argument('input', type=str, help='The path to the input audio file.')
 parser.add_argument('query', type=str, help='The search query.')
 parser.add_argument('--search-output-mode', help='The mode in which the search matches should be outputted.', type=SearchOutputMode, choices=list(SearchOutputMode), default=SearchOutputMode.EXACT_MATCH)
-parser.add_argument('--regex', dest='regex', help='Enable regular expression pattern matching.', action='store_true')
 parser.add_argument('--auth', dest='auth_json_filepath', type=str, help='The path to the service account credentials file.')
 
 args = parser.parse_args()
