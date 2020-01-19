@@ -106,7 +106,8 @@ export default class SearchPage extends Component {
         }
         else {
             return (
-                <ResultsPage accessLink={this.state.queryResult['access_link']} matchResults={this.state.queryResult['matches']} />
+                <ResultsPage accessLink={this.state.queryResult['access_link']} 
+                    matchResults={this.state.queryResult['matches']} queryText={this.state.searchTerm} />
             );
         }
     }
