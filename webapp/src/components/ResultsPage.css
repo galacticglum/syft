@@ -10,6 +10,12 @@ html, body {
     overflow: hidden;
 }
 
+.list-group {
+    max-height: 400px !important;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .list-group-item {
     border-left: 0 !important;
     border-top: 0 !important;
