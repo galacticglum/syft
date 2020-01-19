@@ -6,7 +6,8 @@ import {
     Card,
     CardBody,
     Button,
-    Input
+    Input,
+    Spinner
 } from 'reactstrap';
 import Dropzone from 'react-dropzone';
 import './SearchPage.css';
@@ -23,7 +24,8 @@ export default class SearchPage extends Component {
         
         this.state = {
             file: null,
-            searchTerm: ''
+            searchTerm: '',
+            isLoading: false,
         };
 
         this.sendSearchRequest = this.sendSearchRequest.bind(this);
@@ -44,7 +46,7 @@ export default class SearchPage extends Component {
             'query': this.state.searchTerm
         };
 
-        console.log(data);
+        this.setState({isLoading: true});
         axios.post(`${API_BASE}/api/search/`, {
             ...data,
             headers: {
@@ -53,6 +55,7 @@ export default class SearchPage extends Component {
             }
         }).then((response) => {
             console.log(response.data);
+            this.setState({isLoading: false});
         }).catch((error) => {
             console.log(error);
         });
@@ -75,7 +78,7 @@ export default class SearchPage extends Component {
                         <h1 className="text-center display-1 my-5 title-text">Syft</h1>
                         <Card className="my-5">
                             <CardBody>
-                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600}>
+                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600} disabled={this.state.isLoading}>
                                     {({getRootProps, getInputProps, isDragActive}) => (
                                     <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
                                         <input {...getInputProps()} />
@@ -83,11 +86,14 @@ export default class SearchPage extends Component {
                                     </div>
                                 )}
                                 </Dropzone>
-                                <Input type="text" id="inputSearchTerms" placeholder="Keywords" 
+                                <Input type="text" id="inputSearchTerms" placeholder="Keywords" disabled={this.state.isLoading}
                                     value={this.state.searchTerm} onChange={this.searchTermsChanged} />
 
                                 <hr className="my-4" />
-                                <Button size="lg" color="dark" outline block onClick={this.sendSearchRequest}>Search</Button>
+                                <Button disabled={this.state.isLoading} size="lg" color="dark" outline block 
+                                    onClick={this.sendSearchRequest}>
+                                    {this.state.isLoading ? (<Spinner />) : 'Search'}
+                                </Button>
                             </CardBody>
                         </Card>
                     </Col>

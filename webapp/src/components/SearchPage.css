@@ -49,7 +49,7 @@ input {
     transition: all 0.2s;
 }
 
-.dropzone-active, .dropzone:active {
+.dropzone-active {
     color: #222;
     border-color: #222;
 }

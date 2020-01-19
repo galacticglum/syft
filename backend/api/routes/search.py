@@ -38,6 +38,7 @@ class SearchOutputMode(Enum):
     SENTENCE = 'sentence'
 
 def get_tmp_filepath(): return Path(tempfile.gettempdir()) / str(uuid.uuid4())
+def get_word_time_seconds(time): return time.seconds + time.nanos / 1e9
 
 def normalize_text(text):
     '''
@@ -129,13 +130,13 @@ def query():
         if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue    
         sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
         tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
-
+        match_results = []
         for sentence in sentences:
             sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
             sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
 
             matches = re.finditer(query_text, sentence)      
-            match_results = set()
+            match_cache = set()
             for match in matches:
                 if search_output_mode == SearchOutputMode.EXACT_MATCH:
                     start_boundary = i = match.start()
@@ -156,8 +157,8 @@ def query():
 
                     # Add boundary
                     boundary = (start_boundary, end_boundary)
-                    if boundary in match_results: continue
-                    match_results.add(boundary)
+                    if boundary in match_cache: continue
+                    match_cache.add(boundary)
 
                     start_word = sentence_word_infos[sentence.count(' ', 0, start_boundary)]
                     end_word = sentence_word_infos[sentence.count(' ', 0, end_boundary)]
@@ -165,7 +166,13 @@ def query():
                     start_word = sentence_word_infos[0]
                     end_word = sentence_word_infos[-1]
 
-                print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(query_text,
-                    start_word.start_time.seconds, start_word.start_time.nanos, \
-                    end_word.end_time.seconds, end_word.end_time.nanos))
-    
+                # print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(query_text,
+                #     start_word.start_time.seconds, start_word.start_time.nanos, \
+                #     end_word.end_time.seconds, end_word.end_time.nanos))
+
+                match_results.append({
+                    'start_time': get_word_time_seconds(start_word.start_time),
+                    'end_time': get_word_time_seconds(end_word.end_time) 
+                })
+
+    return jsonify(status_code=201, message='Query was successful!', matches=match_results, success=True)
