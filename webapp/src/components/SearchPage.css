@@ -14,6 +14,10 @@
     font-style: italic;
 }
 
+.title-text:hover {
+    cursor: pointer;
+}
+
 .card-signin .card-title {
     margin-bottom: 2rem !important;
     /* font-weight: 300 !important; */

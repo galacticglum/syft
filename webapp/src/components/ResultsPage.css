@@ -33,6 +33,10 @@ html, body {
     font-style: italic;
 }
 
+.title-text:hover {
+    cursor: pointer;
+}
+
 .results-card .card-img-left {
     width: 35%;
 }  

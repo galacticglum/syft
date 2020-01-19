@@ -44,7 +44,7 @@ export default class ResultsPage extends Component {
             <Container>
                 <Row>
                     <Col lg="10" xl="10" className="mx-auto">
-                        <h1 className="text-center display-1 my-5 title-text">Syft</h1>
+                        <h1 className="text-center display-1 my-5 title-text" onClick={() => window.location.reload()}>Syft</h1>
                         <p className="h3 text-muted font-italic">Search results for "{this.props.queryText}" ({this.props.matchResults.length})</p>
                         <Card className="results-card flex-row mt-3 mb-5">
                             <div className="card-img-left d-none d-md-flex">

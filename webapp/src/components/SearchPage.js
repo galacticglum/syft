@@ -78,12 +78,12 @@ export default class SearchPage extends Component {
                 <Container>
                     <Row>
                         <Col sm="9" md="9" lg="7" className="mx-auto">
-                            <h1 className="text-center display-1 my-5 title-text">Syft</h1>
+                            <h1 className="text-center display-1 my-5 title-text" onClick={() => window.location.reload()}>Syft</h1>
                             <Card className="my-5">
                                 <CardBody>
                                     <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600} disabled={this.state.isLoading}>
                                         {({getRootProps, getInputProps, isDragActive}) => (
-                                        <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
+                                        <div {...getRootProps({className: 'dropzone mb-4' + (isDragActive ? ' dropzone-active' : '')})}>
                                             <input {...getInputProps()} />
                                             <p className="text-center">{dropzoneLabel}</p>
                                         </div>
