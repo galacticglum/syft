@@ -10,6 +10,14 @@ html, body {
     overflow: hidden;
 }
 
+.list-group-item {
+    border-left: 0 !important;
+    border-top: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    /* border-bottom: 0 !important; */
+}
+
 .title-text {
     font-family: 'Times New Roman', Times, serif;
     font-style: italic;

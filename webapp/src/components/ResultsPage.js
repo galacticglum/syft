@@ -25,15 +25,15 @@ export default class ResultsPage extends Component {
                             <div className="card-img-left d-none d-md-flex">
                                 <div class="list-group w-100">
                                     <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">Matched "ou pe" (3.9 - 5.6 seconds).</p>
+                                        <p class="mb-1">3.9 - 5.6 seconds</p>
                                         <small class="text-muted">96% confident.</small>
                                     </a>
                                     <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">Matched "ou pe" (3.9 - 5.6 seconds).</p>
+                                        <p class="mb-1">3.9 - 5.6 seconds</p>
                                         <small class="text-muted">96% confident.</small>
                                     </a>
                                     <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">Matched "ou pe" (3.9 - 5.6 seconds).</p>
+                                        <p class="mb-1">3.9 - 5.6 seconds</p>
                                         <small class="text-muted">96% confident.</small>
                                     </a>
                                 </div>
