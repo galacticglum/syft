@@ -27,6 +27,7 @@ export default class SearchPage extends Component {
         };
 
         this.sendSearchRequest = this.sendSearchRequest.bind(this);
+        this.searchTermsChanged = this.searchTermsChanged.bind(this);
     }
 
     async sendSearchRequest() {
@@ -39,15 +40,16 @@ export default class SearchPage extends Component {
         });
 
         const data = {
-            'input': await toBase64(this.state.file.path),
+            'file_input': await toBase64(this.state.file),
             'query': this.state.searchTerm
         };
 
-        axios({
-            url: `${API_BASE}/api/search`,
-            data: data,
+        console.log(data);
+        axios.post(`${API_BASE}/api/search/`, {
+            ...data,
             headers: {
-                'Content-Type': 'application/json'
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
             }
         }).then((response) => {
             console.log(response.data);
@@ -73,7 +75,7 @@ export default class SearchPage extends Component {
                         <h1 className="text-center display-1 my-5 title-text">Syft</h1>
                         <Card className="my-5">
                             <CardBody>
-                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize="104857600">
+                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600}>
                                     {({getRootProps, getInputProps, isDragActive}) => (
                                     <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
                                         <input {...getInputProps()} />
@@ -85,7 +87,7 @@ export default class SearchPage extends Component {
                                     value={this.state.searchTerm} onChange={this.searchTermsChanged} />
 
                                 <hr className="my-4" />
-                                <Button size="lg" color="dark" rounded outline block onClick={this.sendSearchRequest}>Search</Button>
+                                <Button size="lg" color="dark" outline block onClick={this.sendSearchRequest}>Search</Button>
                             </CardBody>
                         </Card>
                     </Col>

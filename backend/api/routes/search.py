@@ -58,11 +58,12 @@ def find_sub_list(source, sublist):
     return results
 
 class QuerySchema(Schema):
-    input_uri = fields.StringField(validators=[validators.DataRequired()])
+    # input_uri = fields.StringField(validators=[validators.DataRequired()])
+    file_input = fields.StringField(validators=[validators.DataRequired()])
     query = fields.StringField(validators=[validators.DataRequired()])
     search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
 
-@bp.route('/')
+@bp.route('/', methods=['POST'])
 @validate_route(QuerySchema)
 def query():
     data = get_validator_data()
@@ -73,7 +74,7 @@ def query():
     speech_client = speech.SpeechClient.from_service_account_json(auth_filepath)
     storage_client = storage.Client.from_service_account_json(auth_filepath)
 
-    # bucket = storage_client.get_bucket(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'])
+    bucket = storage_client.get_bucket(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'])
 
     # try:
     #     audio, sample_rate = librosa.load(data['input_uri'])
