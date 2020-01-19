@@ -1,9 +1,14 @@
 import re
+import uuid
 import string
 import argparse
+import tempfile
 from enum import Enum
 from pathlib import Path
 from datetime import timedelta
+
+import librosa
+import soundfile
 
 import nltk
 import nltk.tokenize
@@ -12,16 +17,14 @@ from google.cloud import speech_v1p1beta1 as speech, storage
 from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
 
-class SearchMode(Enum):
-    WORD = 'word'
-    STRING = 'string'
+class SearchOutputMode(Enum):
+    EXACT_MATCH = 'exact_match'
     SENTENCE = 'sentence'
-    FRAGMENT = 'fragment'
 
 parser = argparse.ArgumentParser(description='The core search engine.')
 parser.add_argument('input', type=str, help='The path to the input audio file.')
 parser.add_argument('query', type=str, help='The search query.')
-parser.add_argument('--search-mode', type=SearchMode, choices=list(SearchMode))
+parser.add_argument('--search-output-mode', help='The mode in which the search matches should be outputted.', type=SearchOutputMode, choices=list(SearchOutputMode), default=SearchOutputMode.EXACT_MATCH)
 parser.add_argument('--regex', dest='regex', help='Enable regular expression pattern matching.', action='store_true')
 parser.add_argument('--auth', dest='auth_json_filepath', type=str, help='The path to the service account credentials file.')
 
@@ -55,12 +58,24 @@ def find_sub_list(source, sublist):
 
     return results
 
-with open(Path(args.input), 'rb') as audio_file:
-    # Upload the file to GCS if it doesn't already exists
-    blob_root = BUCKET_AUDIO_ROOT
-    if blob_root and not BUCKET_AUDIO_ROOT.endswith('/'):
-        blob_root = BUCKET_AUDIO_ROOT + '/'
-    
+try:
+    audio, sample_rate = librosa.load(args.input)
+except Exception as exception:
+    print('Failed to load audio file ({})'.format(args.input), exception)
+    exit(1)
+
+tmp_filepath = Path(tempfile.gettempdir()) / str(uuid.uuid4())
+
+# Preprocess the audio data by converting it to a mono WAVE
+audio_mono = librosa.to_mono(audio)
+soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
+
+# Upload the file to GCS if it doesn't already exists
+blob_root = BUCKET_AUDIO_ROOT
+if blob_root and not BUCKET_AUDIO_ROOT.endswith('/'):
+    blob_root = BUCKET_AUDIO_ROOT + '/'
+
+with open(tmp_filepath, 'rb') as audio_file:
     blob_filename = '{}{}'.format(blob_root, hash_util.get_crc32_str(audio_file)) 
     blob = bucket.blob(blob_filename)
     if not blob.exists():
@@ -68,70 +83,63 @@ with open(Path(args.input), 'rb') as audio_file:
 
     blob_uri = 'gs://{}/{}'.format(BUCKET_NAME, blob_filename)
 
-    config = types.RecognitionConfig(
-        encoding=enums.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
-        sample_rate_hertz=16000,
-        enable_speaker_diarization=True,
-        enable_automatic_punctuation=True,
-        language_code='en-US')
+# Remove audio file now that we are done with it
+tmp_filepath.unlink()
 
-    operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
-    op_result = operation.result()
-    for result in op_result.results:
-        # Check if the response is valid, which happens if and only if the result alternatives
-        # is at least of length 1 AND the transcript is non-empty.
-        if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue
-        # print('='*20)
-        # print(result.alternatives[0].transcript)
-        # print('-'*20)
-        
-        if args.search_mode == SearchMode.WORD:
-            for word_info in result.alternatives[0].words:
-                # Remove punctuation from word
-                raw_word = normalize_text(word_info.word)
-                matched = re.search(args.query, raw_word) if args.regex else raw_word == args.query
-                if matched:
-                    print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(args.query, \
-                        word_info.start_time.seconds, word_info.start_time.nanos, \
-                        word_info.end_time.seconds, word_info.end_time.nanos))
-        elif args.search_mode == SearchMode.STRING:
-            sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
-            tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
+config = types.RecognitionConfig(
+    encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+    sample_rate_hertz=sample_rate,
+    enable_speaker_diarization=True,
+    enable_automatic_punctuation=True,
+    language_code='en-US')
 
-            for sentence in sentences:
-                sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
-                sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
-                # print(['{}'.format(word_info.word) for word_info in sentence_word_infos])
+operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
+op_result = operation.result()
+for result in op_result.results:
+    # Check if the response is valid, which happens if and only if the result alternatives
+    # is at least of length 1 AND the transcript is non-empty.
+    if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue
+    print('='*20)
+    print(result.alternatives[0].transcript)
+    # print('-'*20)
+    
+    sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
+    tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
 
-                matches = re.finditer(args.query, sentence)       
-                match_results = set()
-                for match in matches:
-                    start_boundary = i = match.start()
-                    
-                    # Check if the match starts inside a word
-                    if i != 0 and sentence[i - 1] != ' ':
-                        start_boundary = sentence.rfind(' ', 0, i) + 1
+    for sentence in sentences:
+        sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
+        sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
+        # print(['{}'.format(word_info.word) for word_info in sentence_word_infos])
 
-                    end_boundary = j = match.end() - 1
+        matches = re.finditer(args.query, sentence)       
+        match_results = set()
+        for match in matches:
+            start_boundary = i = match.start()
+            
+            # Check if the match starts inside a word
+            if i != 0 and sentence[i - 1] != ' ':
+                start_boundary = sentence.rfind(' ', 0, i) + 1
 
-                    # Check if the match ends inside a word
-                    if j != len(sentence) - 1 and sentence[j + 1] != ' ':
-                        end_boundary = sentence.find(' ', j)
-                        if end_boundary == -1:
-                            end_boundary = len(sentence) - 1
-                        else:
-                            end_boundary -= 1
+            end_boundary = j = match.end() - 1
 
-                    # Add boundary
-                    boundary = (start_boundary, end_boundary)
-                    if boundary in match_results: continue
-                    match_results.add(boundary)
+            # Check if the match ends inside a word
+            if j != len(sentence) - 1 and sentence[j + 1] != ' ':
+                end_boundary = sentence.find(' ', j)
+                if end_boundary == -1:
+                    end_boundary = len(sentence) - 1
+                else:
+                    end_boundary -= 1
 
-                    start_word = sentence_word_infos[sentence.count(' ', 0, start_boundary)]
-                    end_word = sentence_word_infos[sentence.count(' ', 0, end_boundary)]
+            # Add boundary
+            boundary = (start_boundary, end_boundary)
+            if boundary in match_results: continue
+            match_results.add(boundary)
 
-                    print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(args.query,
-                        start_word.start_time.seconds, start_word.start_time.nanos, \
-                        end_word.end_time.seconds, end_word.end_time.nanos))
+            start_word = sentence_word_infos[sentence.count(' ', 0, start_boundary)]
+            end_word = sentence_word_infos[sentence.count(' ', 0, end_boundary)]
 
-        # print(result.alternatives[0].confidence)
+            print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(args.query,
+                start_word.start_time.seconds, start_word.start_time.nanos, \
+                end_word.end_time.seconds, end_word.end_time.nanos))
+
+    # print(result.alternatives[0].confidence)
