@@ -1,0 +1,49 @@
+:root {
+    --input-padding-x: 1.5rem;
+    --input-padding-y: .75rem;
+}
+
+.card-signin {
+    border: 0 !important; 
+    border-radius: 1rem !important;
+    box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.title-text {
+    font-family: 'Times New Roman', Times, serif;
+    font-style: italic;
+}
+
+.card-signin .card-title {
+    margin-bottom: 2rem !important;
+    /* font-weight: 300 !important; */
+    /* font-size: 1.5rem !important; */
+}
+
+.card-signin .card-body {
+    padding: 2rem !important;
+}
+
+.btn {
+    font-size: 80% !important;
+    border-radius: 5rem !important;
+    letter-spacing: .1rem !important;
+    font-weight: bold !important;
+    padding: 1rem !important;
+    transition: all 0.2s !important;
+}
+
+input {
+    height: auto !important;
+    border-radius: 2rem !important;
+    padding: var(--input-padding-y) var(--input-padding-x) !important;
+}
+
+.dropzone {
+    color: #ccc;
+    border-style: dashed;
+    border-color: #ccc;
+    line-height: 200px;
+    text-align: center;
+    border-radius: 1rem !important;
+}
