@@ -6,6 +6,7 @@ Defines the search-related API routes.
 import re
 import uuid
 import string
+import base64
 import argparse
 import tempfile
 from enum import Enum
@@ -36,6 +37,8 @@ class SearchOutputMode(Enum):
     EXACT_MATCH = 'exact_match'
     SENTENCE = 'sentence'
 
+def get_tmp_filepath(): return Path(tempfile.gettempdir()) / str(uuid.uuid4())
+
 def normalize_text(text):
     '''
     Normalizes text to make it searchable. Removes any leading/trailing whitespace,
@@ -58,7 +61,6 @@ def find_sub_list(source, sublist):
     return results
 
 class QuerySchema(Schema):
-    # input_uri = fields.StringField(validators=[validators.DataRequired()])
     file_input = fields.StringField(validators=[validators.DataRequired()])
     query = fields.StringField(validators=[validators.DataRequired()])
     search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
@@ -76,34 +78,39 @@ def query():
 
     bucket = storage_client.get_bucket(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'])
 
-    # try:
-    #     audio, sample_rate = librosa.load(data['input_uri'])
-    # except Exception as exception:
-    #     raise exceptions.AudioFileLoadError(data['input_uri'], exception)
+    with open(get_tmp_filepath(), 'w+b') as input_file:
+        data['file_input'] = data['file_input'][data['file_input'].find(',')+1:]
+        file_input = data['file_input'] + '=' * ((4 - len(data['file_input']) % 4) % 4) #ugh
+        input_file.write(base64.b64decode(file_input))
+    
+    try:
+        audio, sample_rate = librosa.load(input_file.name)
+    except Exception as exception:
+        raise exceptions.AudioFileLoadError('file_input', exception)
 
-    # tmp_filepath = Path(tempfile.gettempdir()) / str(uuid.uuid4())
+    tmp_filepath = get_tmp_filepath()
 
-    # # Preprocess the audio data by converting it to a mono WAVE
-    # audio_mono = librosa.to_mono(audio)
-    # soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
+    # Preprocess the audio data by converting it to a mono WAVE
+    audio_mono = librosa.to_mono(audio)
+    soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
 
-    # # Upload the file to GCS if it doesn't already exists
-    # blob_root = BUCKET_AUDIO_ROOT
-    # if blob_root and not BUCKET_AUDIO_ROOT.endswith('/'):
-    #     blob_root = BUCKET_AUDIO_ROOT + '/'
+    # Upload the file to GCS if it doesn't already exists
+    bucket_audio_root = current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_AUDIO_ROOT']
+    blob_root = bucket_audio_root
+    if blob_root and not bucket_audio_root.endswith('/'):
+        blob_root = bucket_audio_root + '/'
 
-    # with open(tmp_filepath, 'rb') as audio_file:
-    #     blob_filename = '{}{}'.format(blob_root, hash_util.get_crc32_str(audio_file)) 
-    #     blob = bucket.blob(blob_filename)
-    #     if not blob.exists():
-    #         blob.upload_from_file(audio_file, rewind=True)
+    with open(tmp_filepath, 'rb') as audio_file:
+        blob_filename = '{}{}'.format(blob_root, hash_util.get_crc32_str(audio_file)) 
+        blob = bucket.blob(blob_filename)
+        if not blob.exists():
+            blob.upload_from_file(audio_file, rewind=True)
 
-    #     blob_uri = 'gs://{}/{}'.format(BUCKET_NAME, blob_filename)
+        blob_uri = 'gs://{}/{}'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'], blob_filename)
 
-    # # Remove audio file now that we are done with it
-    # tmp_filepath.unlink()
-
-    blob_uri = data['input_uri']
+    # Remove audio file now that we are done with it
+    tmp_filepath.unlink()
+    Path(input_file.name).unlink()
 
     # This configuration is predetermined...All audio files are converted 
     # a WAVE format with 16-bit PCM encoding. Sample rate is determined using librosa.
