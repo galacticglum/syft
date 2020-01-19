@@ -5,13 +5,14 @@ import {
     Col,
     Card,
     CardBody,
-    CardTitle,
     Button,
-    Input,
-    Label
+    Input
 } from 'reactstrap';
 import Dropzone from 'react-dropzone';
 import './SearchPage.css';
+import axios from 'axios';
+
+import { API_BASE } from '../App';
 
 export default class SearchPage extends Component {
     constructor() {
@@ -21,8 +22,42 @@ export default class SearchPage extends Component {
         };
         
         this.state = {
-            file: null
+            file: null,
+            searchTerm: ''
         };
+
+        this.sendSearchRequest = this.sendSearchRequest.bind(this);
+    }
+
+    async sendSearchRequest() {
+        if (this.state.file == null) return;
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        const data = {
+            'input': await toBase64(this.state.file.path),
+            'query': this.state.searchTerm
+        };
+
+        axios({
+            url: `${API_BASE}/api/search`,
+            data: data,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then((response) => {
+            console.log(response.data);
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    searchTermsChanged(e) {
+        this.setState({searchTerm: e.target.value})
     }
 
     render() {
@@ -46,9 +81,11 @@ export default class SearchPage extends Component {
                                     </div>
                                 )}
                                 </Dropzone>
-                                <Input id="inputSearchTerms" placeholder="Keywords" />
+                                <Input type="text" id="inputSearchTerms" placeholder="Keywords" 
+                                    value={this.state.searchTerm} onChange={this.searchTermsChanged} />
+
                                 <hr className="my-4" />
-                                <Button size="lg" color="dark" rounded outline block>Search</Button>
+                                <Button size="lg" color="dark" rounded outline block onClick={this.sendSearchRequest}>Search</Button>
                             </CardBody>
                         </Card>
                     </Col>
