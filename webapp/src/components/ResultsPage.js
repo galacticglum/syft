@@ -52,7 +52,7 @@ export default class ResultsPage extends Component {
                                 </div>
                             </div>
                             <CardBody>
-                                <AudioPlayer ref={c => (this.player=c)} src={this.props.accessLink} showDownloadProgress={false} />
+                                <AudioPlayer className="text-center" ref={c => (this.player=c)} src={this.props.accessLink} showDownloadProgress={false} />
                             </CardBody>
                         </Card>
                     </Col>

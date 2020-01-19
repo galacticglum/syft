@@ -124,13 +124,13 @@ def query():
 
     operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
     op_result = operation.result()
+    match_results = []
     for result in op_result.results:
         # Check if the response is valid, which happens if and only if the result alternatives
         # is at least of length 1 AND the transcript is non-empty.
         if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue    
         sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
         tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
-        match_results = []
         for sentence in sentences:
             sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
             sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
