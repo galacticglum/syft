@@ -160,19 +160,19 @@ def query():
                     if boundary in match_cache: continue
                     match_cache.add(boundary)
 
-                    start_word = sentence_word_infos[sentence.count(' ', 0, start_boundary)]
-                    end_word = sentence_word_infos[sentence.count(' ', 0, end_boundary)]
+                    start_word_index = sentence.count(' ', 0, start_boundary)
+                    end_word_index = sentence.count(' ', 0, end_boundary)
                 elif search_output_mode == SearchOutputMode.SENTENCE:
-                    start_word = sentence_word_infos[0]
-                    end_word = sentence_word_infos[-1]
+                    start_word_index = 0
+                    end_word_index = len(sentence_word_infos) - 1
 
-                # print('Found match (query=\'{}\') at {}:{} to {}:{}.'.format(query_text,
-                #     start_word.start_time.seconds, start_word.start_time.nanos, \
-                #     end_word.end_time.seconds, end_word.end_time.nanos))
-
+                confidence = result.alternatives[0].confidence
+                start_word = sentence_word_infos[start_word_index]
+                end_word = sentence_word_infos[end_word_index]
                 match_results.append({
                     'start_time': get_word_time_seconds(start_word.start_time),
-                    'end_time': get_word_time_seconds(end_word.end_time) 
+                    'end_time': get_word_time_seconds(end_word.end_time),
+                    'confidence': confidence
                 })
 
     return jsonify(status_code=201, message='Query was successful!', matches=match_results, success=True)

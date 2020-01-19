@@ -20,7 +20,7 @@ export default class ResultsPage extends Component {
             return (
                 <a key={index} href="#" className={"list-group-item list-group-item-action flex-column align-items-start " + extraClassName}>
                     <p className="mb-1">{matchResult.start_time} - {matchResult.end_time} seconds</p>
-                    <small className="text-muted">{matchResult.confidence}% confident</small>
+                    <small className="text-muted">{(matchResult.confidence * 100).toFixed(2)}% confident</small>
                 </a>
             );
         });
