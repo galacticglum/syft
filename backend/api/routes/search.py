@@ -23,7 +23,6 @@ from google.cloud.speech_v1p1beta1 import types
 
 import api.http_errors as exceptions
 from flask import Blueprint, jsonify, request, current_app
-from api.extensions import storage_client, speech_client
 from api.validator import get_validator_data, validate_route, Schema, validators, fields
 
 bp = Blueprint('search', __name__, url_prefix='/api/search')
@@ -61,7 +60,7 @@ def find_sub_list(source, sublist):
 class QuerySchema(Schema):
     input_uri = fields.StringField(validators=[validators.DataRequired()])
     query = fields.StringField(validators=[validators.DataRequired()])
-    search_output_mode = fields.EnumField(SearchOutputMode, validators=[validators.DataRequired()])
+    search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
 
 @bp.route('/')
 @validate_route(QuerySchema)
@@ -69,6 +68,10 @@ def query():
     data = get_validator_data()
     query_text = data['query'].strip().lower()
     search_output_mode = data['search_output_mode']
+    
+    auth_filepath = Path(current_app.instance_path) / Path(current_app.config['GOOGLE_CLOUD_AUTH_FILENAME'])
+    speech_client = speech.SpeechClient.from_service_account_json(auth_filepath)
+    storage_client = storage.Client.from_service_account_json(auth_filepath)
 
     # bucket = storage_client.get_bucket(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'])
 

@@ -15,6 +15,6 @@ def init_app(app):
     Registers all the error handlers to the specified application.
     '''
 
-    usage: app.register_error_handler(exceptions.BadContentTypeError, error_response)
-    usage: app.register_error_handler(exceptions.InvalidDataError, error_response)
-    usage: app.register_error_handler(exceptions.AudioFileLoadError, error_response)
+    app.register_error_handler(exceptions.BadContentTypeError, error_response)
+    app.register_error_handler(exceptions.InvalidDataError, error_response)
+    app.register_error_handler(exceptions.AudioFileLoadError, error_response)
