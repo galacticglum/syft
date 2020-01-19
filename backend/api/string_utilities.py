@@ -22,7 +22,7 @@ def list_join(list, conjunction_str, format_func=str, oxford_comma=True):
     first_part = ', '.join([format_func(i) for i in list[:-1]])
     comma = ',' if oxford_comma and len(list) > 2 else ''
 
-    return '{}{} {} {}'.format(first_part, comma,, conjunction_str, format_func(list[-1]))
+    return '{}{} {} {}'.format(first_part, comma, conjunction_str, format_func(list[-1]))
 
 def kwargs_to_list(kwargs_dict):
     '''
