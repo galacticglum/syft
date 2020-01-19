@@ -39,26 +39,43 @@ export default class ResultsPage extends Component {
                 </a>
             );
         });
-
-        return (
-            <Container>
-                <Row>
-                    <Col lg="10" xl="10" className="mx-auto">
-                        <h1 className="text-center display-1 my-5 title-text" onClick={() => window.location.reload()}>Syft</h1>
-                        <p className="h3 text-muted font-italic">Search results for "{this.props.queryText}" ({this.props.matchResults.length})</p>
-                        <Card className="results-card flex-row mt-3 mb-5">
-                            <div className="card-img-left d-none d-md-flex">
-                                <div className="list-group w-100">
-                                    {matchResultItems}
+        
+        if (this.props.matchResults.length > 0) {
+            return (
+                <Container>
+                    <Row>
+                        <Col lg="10" xl="10" className="mx-auto">
+                            <h1 className="text-center display-1 my-5 title-text" onClick={() => window.location.reload()}>Syft</h1>
+                            <p className="h3 text-muted font-italic">Search results for "{this.props.queryText}" ({this.props.matchResults.length})</p>
+                            <Card className="results-card flex-row mt-3 mb-5">
+                                <div className="card-img-left d-none d-md-flex">
+                                    <div className="list-group w-100">
+                                        {matchResultItems}
+                                    </div>
                                 </div>
-                            </div>
-                            <CardBody>
-                                <AudioPlayer className="text-center" ref={c => (this.player=c)} src={this.props.accessLink} showDownloadProgress={false} />
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
-        );
+                                <CardBody>
+                                    <AudioPlayer className="text-center" ref={c => (this.player=c)} src={this.props.accessLink} showDownloadProgress={false} />
+                                </CardBody>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Container>
+            );
+        } else {
+            return (
+                <Container>
+                    <Row>
+                        <Col lg="10" xl="10" className="mx-auto">
+                            <h1 className="text-center display-1 my-5 title-text" onClick={() => window.location.reload()}>Syft</h1>
+                            <Card className="results-card mt-3 mb-5">
+                                <CardBody>
+                                    <p className="h3 text-muted font-italic">Uh-oh! We couldn't find anything.</p>
+                                </CardBody>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Container>
+            );
+        }
     }
 }
