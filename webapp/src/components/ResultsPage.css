@@ -1,0 +1,20 @@
+html, body {
+    height: 100%;
+}
+
+.results-card {
+    /* height: 150%; */
+    /* border: 0 !important;  */
+    /* border-radius: 1rem !important; */
+    /* box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.1) !important; */
+    overflow: hidden;
+}
+
+.title-text {
+    font-family: 'Times New Roman', Times, serif;
+    font-style: italic;
+}
+
+.results-card .card-img-left {
+    width: 35%;
+}  
