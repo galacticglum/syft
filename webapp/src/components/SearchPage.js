@@ -35,7 +35,7 @@ export default class SearchPage extends Component {
         return (
             <Container>
                 <Row>
-                    <Col sm="9" md="9" lg="9" className="mx-auto">
+                    <Col sm="9" md="9" lg="7" className="mx-auto">
                         <h1 className="text-center display-1 my-5 title-text">Syft</h1>
                         <Card className="my-5">
                             <CardBody>
@@ -43,13 +43,13 @@ export default class SearchPage extends Component {
                                     {({getRootProps, getInputProps}) => (
                                     <div {...getRootProps({className: 'dropzone my-4'})}>
                                         <input {...getInputProps()} />
-                                        <p>Drag 'n' drop a file, or click to get started</p>
+                                        <p className="text-center">Drag 'n' drop a file, or click to get started</p>
                                     </div>
                                 )}
                                 </Dropzone>
-                                <Input id="inputSearchTerms" placeholder="Search" />
+                                <Input id="inputSearchTerms" placeholder="Keywords" />
                                 <hr className="my-4" />
-                                <Button size="lg" color="primary" className="text-uppercase" block>Search</Button>
+                                <Button size="lg" color="dark" rounded outline block>Search</Button>
                             </CardBody>
                         </Card>
                     </Col>

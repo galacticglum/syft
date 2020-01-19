@@ -25,17 +25,18 @@
 }
 
 .btn {
-    font-size: 80% !important;
-    border-radius: 5rem !important;
+    /* font-size: 80% !important; */
+    /* border-radius: 5rem !important; */
+    border-radius: 0.5rem !important;
     letter-spacing: .1rem !important;
-    font-weight: bold !important;
-    padding: 1rem !important;
+    /* font-weight: bold !important; */
+    /* padding: 1rem !important; */
     transition: all 0.2s !important;
 }
 
 input {
     height: auto !important;
-    border-radius: 2rem !important;
+    border-radius: 0.5rem !important;
     padding: var(--input-padding-y) var(--input-padding-x) !important;
 }
 
@@ -43,7 +44,6 @@ input {
     color: #ccc;
     border-style: dashed;
     border-color: #ccc;
-    line-height: 200px;
-    text-align: center;
     border-radius: 1rem !important;
+    line-height: 100px;
 }
