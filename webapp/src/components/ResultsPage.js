@@ -9,7 +9,21 @@ import {
 import { API_BASE } from '../App';
 import './ResultsPage.css';
 
+import AudioPlayer from 'react-h5-audio-player';
+import 'react-h5-audio-player/lib/styles.css';
+
 export default class ResultsPage extends Component {
+    constructor() {
+        super();
+        this.onMatchResultClicked = this.onMatchResultClicked.bind(this);
+    }
+
+    onMatchResultClicked(event, matchResult) {
+        this.player.audio.currentTime = matchResult.start_time;
+        this.player.audio.play();
+        console.log(this.player);
+    }
+
     render() {
         const matchResultItems = this.props.matchResults.map((matchResult, index) => {
             let extraClassName = '';
@@ -18,7 +32,8 @@ export default class ResultsPage extends Component {
             }
 
             return (
-                <a key={index} href="#" className={"list-group-item list-group-item-action flex-column align-items-start " + extraClassName}>
+                <a key={index} href="#" onClick={(event) => this.onMatchResultClicked(event, matchResult)}
+                    className={"h-100 list-group-item list-group-item-action flex-column align-items-start " + extraClassName}>
                     <p className="mb-1">{matchResult.start_time} - {matchResult.end_time} seconds</p>
                     <small className="text-muted">{(matchResult.confidence * 100).toFixed(2)}% confident</small>
                 </a>
@@ -37,7 +52,7 @@ export default class ResultsPage extends Component {
                                 </div>
                             </div>
                             <CardBody>
-
+                                <AudioPlayer ref={c => (this.player=c)} src={this.props.accessLink} showDownloadProgress={false} />
                             </CardBody>
                         </Card>
                     </Col>

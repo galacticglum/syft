@@ -27,7 +27,7 @@ export default class SearchPage extends Component {
             file: null,
             searchTerm: '',
             isLoading: false,
-            matchResults: null
+            queryResult: null
         };
 
         this.sendSearchRequest = this.sendSearchRequest.bind(this);
@@ -57,7 +57,7 @@ export default class SearchPage extends Component {
             }
         }).then((response) => {
             console.log(response.data);
-            this.setState({isLoading: false, matchResults: response.data['matches']});
+            this.setState({isLoading: false, queryResult: response.data});
         }).catch((error) => {
             console.log(error);
         });
@@ -73,7 +73,7 @@ export default class SearchPage extends Component {
             dropzoneLabel = this.state.file.name;
         }
 
-        if (this.state.matchResults == null) {
+        if (this.state.queryResult == null) {
             return (
                 <Container>
                     <Row>
@@ -106,7 +106,7 @@ export default class SearchPage extends Component {
         }
         else {
             return (
-                <ResultsPage matchResults={this.state.matchResults} />
+                <ResultsPage accessLink={this.state.queryResult['access_link']} matchResults={this.state.queryResult['matches']} />
             );
         }
     }

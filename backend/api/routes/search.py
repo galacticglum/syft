@@ -175,4 +175,5 @@ def query():
                     'confidence': confidence
                 })
 
-    return jsonify(status_code=201, message='Query was successful!', matches=match_results, success=True)
+    access_link = blob.generate_signed_url(timedelta(hours=1))
+    return jsonify(status_code=201, message='Query was successful!', matches=match_results, access_link=access_link, success=True)
