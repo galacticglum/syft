@@ -18,6 +18,10 @@ html, body {
     /* border-bottom: 0 !important; */
 }
 
+.list-group-item-last {
+    border-bottom: 0 !important;
+}
+
 .title-text {
     font-family: 'Times New Roman', Times, serif;
     font-style: italic;

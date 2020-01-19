@@ -32,7 +32,7 @@ export default class ResultsPage extends Component {
                                         <p class="mb-1">3.9 - 5.6 seconds</p>
                                         <small class="text-muted">96% confident.</small>
                                     </a>
-                                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                                    <a href="#" class="list-group-item list-group-item-last list-group-item-action flex-column align-items-start">
                                         <p class="mb-1">3.9 - 5.6 seconds</p>
                                         <small class="text-muted">96% confident.</small>
                                     </a>
