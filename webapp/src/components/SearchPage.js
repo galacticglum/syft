@@ -14,6 +14,7 @@ import './SearchPage.css';
 import axios from 'axios';
 
 import { API_BASE } from '../App';
+import ResultsPage from './ResultsPage';
 
 export default class SearchPage extends Component {
     constructor() {
@@ -26,6 +27,7 @@ export default class SearchPage extends Component {
             file: null,
             searchTerm: '',
             isLoading: false,
+            matchResults: null
         };
 
         this.sendSearchRequest = this.sendSearchRequest.bind(this);
@@ -55,7 +57,7 @@ export default class SearchPage extends Component {
             }
         }).then((response) => {
             console.log(response.data);
-            this.setState({isLoading: false});
+            this.setState({isLoading: false, matchResults: response.data['matches']});
         }).catch((error) => {
             console.log(error);
         });
@@ -71,34 +73,41 @@ export default class SearchPage extends Component {
             dropzoneLabel = this.state.file.name;
         }
 
-        return (
-            <Container>
-                <Row>
-                    <Col sm="9" md="9" lg="7" className="mx-auto">
-                        <h1 className="text-center display-1 my-5 title-text">Syft</h1>
-                        <Card className="my-5">
-                            <CardBody>
-                                <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600} disabled={this.state.isLoading}>
-                                    {({getRootProps, getInputProps, isDragActive}) => (
-                                    <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
-                                        <input {...getInputProps()} />
-                                        <p className="text-center">{dropzoneLabel}</p>
-                                    </div>
-                                )}
-                                </Dropzone>
-                                <Input type="text" id="inputSearchTerms" placeholder="Keywords" disabled={this.state.isLoading}
-                                    value={this.state.searchTerm} onChange={this.searchTermsChanged} />
+        if (this.state.matchResults == null) {
+            return (
+                <Container>
+                    <Row>
+                        <Col sm="9" md="9" lg="7" className="mx-auto">
+                            <h1 className="text-center display-1 my-5 title-text">Syft</h1>
+                            <Card className="my-5">
+                                <CardBody>
+                                    <Dropzone onDrop={this.onDrop} accept="audio/*,video/*" maxSize={104857600} disabled={this.state.isLoading}>
+                                        {({getRootProps, getInputProps, isDragActive}) => (
+                                        <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
+                                            <input {...getInputProps()} />
+                                            <p className="text-center">{dropzoneLabel}</p>
+                                        </div>
+                                    )}
+                                    </Dropzone>
+                                    <Input type="text" id="inputSearchTerms" placeholder="Keywords" disabled={this.state.isLoading}
+                                        value={this.state.searchTerm} onChange={this.searchTermsChanged} />
 
-                                <hr className="my-4" />
-                                <Button disabled={this.state.isLoading} size="lg" color="dark" outline block 
-                                    onClick={this.sendSearchRequest}>
-                                    {this.state.isLoading ? (<Spinner />) : 'Search'}
-                                </Button>
-                            </CardBody>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
-        )
+                                    <hr className="my-4" />
+                                    <Button disabled={this.state.isLoading} size="lg" color="dark" outline block 
+                                        onClick={this.sendSearchRequest}>
+                                        {this.state.isLoading ? (<Spinner />) : 'Search'}
+                                    </Button>
+                                </CardBody>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Container>
+            )
+        }
+        else {
+            return (
+                <ResultsPage matchResults={this.state.matchResults} />
+            );
+        }
     }
 }

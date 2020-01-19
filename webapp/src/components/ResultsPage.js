@@ -4,18 +4,27 @@ import {
     Row,
     Col,
     Card,
-    CardBody,
-    Button,
-    ListGroup,
-    ListGroupItem,
-    ListGroupItemHeading,
-    ListGroupItemText
+    CardBody
 } from 'reactstrap';
 import { API_BASE } from '../App';
 import './ResultsPage.css';
 
 export default class ResultsPage extends Component {
     render() {
+        const matchResultItems = this.props.matchResults.map((matchResult, index) => {
+            let extraClassName = '';
+            if (index == this.props.matchResults.length - 1) {
+                extraClassName = 'list-group-item-last'
+            }
+
+            return (
+                <a key={index} href="#" className={"list-group-item list-group-item-action flex-column align-items-start " + extraClassName}>
+                    <p className="mb-1">{matchResult.start_time} - {matchResult.end_time} seconds</p>
+                    <small className="text-muted">{matchResult.confidence}% confident</small>
+                </a>
+            );
+        });
+
         return (
             <Container>
                 <Row>
@@ -23,19 +32,8 @@ export default class ResultsPage extends Component {
                         <h1 className="text-center display-1 my-5 title-text">Syft</h1>
                         <Card className="results-card flex-row my-5">
                             <div className="card-img-left d-none d-md-flex">
-                                <div class="list-group w-100">
-                                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">3.9 - 5.6 seconds</p>
-                                        <small class="text-muted">96% confident.</small>
-                                    </a>
-                                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">3.9 - 5.6 seconds</p>
-                                        <small class="text-muted">96% confident.</small>
-                                    </a>
-                                    <a href="#" class="list-group-item list-group-item-last list-group-item-action flex-column align-items-start">
-                                        <p class="mb-1">3.9 - 5.6 seconds</p>
-                                        <small class="text-muted">96% confident.</small>
-                                    </a>
+                                <div className="list-group w-100">
+                                    {matchResultItems}
                                 </div>
                             </div>
                             <CardBody>
