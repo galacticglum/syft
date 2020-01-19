@@ -17,15 +17,20 @@ export default class SearchPage extends Component {
     constructor() {
         super();
         this.onDrop = (files) => {
-            this.setState({files})
+            this.setState({file: files[0]})
         };
         
         this.state = {
-            files: []
+            file: null
         };
     }
 
     render() {
+        let dropzoneLabel = 'Drag \'n\' drop a file, or click to get started';
+        if (this.state.file != null) {
+            dropzoneLabel = this.state.file.name;
+        }
+
         return (
             <Container>
                 <Row>
@@ -37,7 +42,7 @@ export default class SearchPage extends Component {
                                     {({getRootProps, getInputProps, isDragActive}) => (
                                     <div {...getRootProps({className: 'dropzone my-4' + (isDragActive ? ' dropzone-active' : '')})}>
                                         <input {...getInputProps()} />
-                                        <p className="text-center">Drag 'n' drop a file, or click to get started</p>
+                                        <p className="text-center">{dropzoneLabel}</p>
                                     </div>
                                 )}
                                 </Dropzone>
