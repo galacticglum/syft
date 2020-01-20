@@ -29,7 +29,6 @@ from flask import Blueprint, jsonify, request, current_app
 from api.validator import get_validator_data, validate_route, Schema, validators, fields
 
 bp = Blueprint('search', __name__, url_prefix='/api/search')
-input_hash_to_blob_uri = dict()
 
 class SearchOutputMode(Enum):
     '''
@@ -128,7 +127,7 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
 
     match_result_cache[match_cache_key] = match_results
     cache.set('match_result_cache', match_result_cache)
-    
+
     return match_results
 
 @bp.route('/', methods=['POST'])
@@ -152,7 +151,7 @@ def query():
         input_file.write(base64.b64decode(file_input))
         input_hash = hash_util.get_md5_str(file_input)
 
-    global input_hash_to_blob_uri
+    input_hash_to_blob_uri = cache.get('input_hash_to_blob_uri') or dict()
     if input_hash in input_hash_to_blob_uri:
         blob_uri = input_hash_to_blob_uri[input_hash]
         blob = bucket.blob(blob_uri.replace('gs://{}/'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME']), ''))
@@ -182,6 +181,7 @@ def query():
 
             blob_uri = 'gs://{}/{}'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'], blob_filename)
             input_hash_to_blob_uri[input_hash] = blob_uri
+            cache.set('input_hash_to_blob_uri', input_hash_to_blob_uri)
 
         # Remove audio file now that we are done with it
         tmp_filepath.unlink()
