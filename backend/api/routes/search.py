@@ -29,8 +29,6 @@ from flask import Blueprint, jsonify, request, current_app
 from api.validator import get_validator_data, validate_route, Schema, validators, fields
 
 bp = Blueprint('search', __name__, url_prefix='/api/search')
-transcription_cache = dict()
-match_result_cache = dict()
 input_hash_to_blob_uri = dict()
 
 class SearchOutputMode(Enum):
@@ -73,7 +71,7 @@ class QuerySchema(Schema):
     is_context_search = fields.BooleanField(default_value=False)
 
 def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutputMode.EXACT_MATCH):
-    global match_result_cache
+    match_result_cache = cache.get('match_result_cache') or dict()
     match_cache_key = (blob_uri, query_text)
     if match_cache_key in match_result_cache: return match_result_cache[match_cache_key]
     
@@ -129,6 +127,8 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
                 })
 
     match_result_cache[match_cache_key] = match_results
+    cache.set('match_result_cache', match_result_cache)
+    
     return match_results
 
 @bp.route('/', methods=['POST'])
@@ -188,7 +188,7 @@ def query():
 
     Path(input_file.name).unlink()
 
-    global transcription_cache
+    transcription_cache = cache.get('transcription_cache') or dict()
     if blob_uri in transcription_cache:
         op_result = transcription_cache[blob_uri]
         print('Loaded {} from cache'.format(blob_uri))
@@ -205,6 +205,7 @@ def query():
         operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
         op_result = operation.result()
         transcription_cache[blob_uri] = op_result
+        cache.set('transcription_cache', transcription_cache)
     
     if not data['is_context_search']:
         match_results = string_query(query_text, blob_uri, op_result, search_output_mode)

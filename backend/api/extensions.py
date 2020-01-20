@@ -16,10 +16,7 @@ from flask_cors import CORS
 
 db = SQLAlchemy()
 migrate = Migrate(db=db)
-cache = Cache(config={
-    'CACHE_TYPE': 'simple'
-})
-
+cache = Cache()
 cors = CORS()
 
 def init_app(app):
