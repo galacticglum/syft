@@ -122,7 +122,8 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
                 match_results.append({
                     'start_time': get_word_time_seconds(start_word.start_time),
                     'end_time': get_word_time_seconds(end_word.end_time),
-                    'confidence': confidence
+                    'confidence': confidence,
+                    'transcript': sentence[match.start():match.end()] 
                 })
 
     match_result_cache[match_cache_key] = match_results
@@ -197,7 +198,7 @@ def query():
         # a WAVE format with 16-bit PCM encoding. Sample rate is determined using librosa.
         config = types.RecognitionConfig(
             encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
-            # sample_rate_hertz=sample_rate,
+            sample_rate_hertz=sample_rate,
             enable_speaker_diarization=True,
             enable_automatic_punctuation=True,
             language_code='en-US')
