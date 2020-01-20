@@ -75,7 +75,6 @@ class QuerySchema(Schema):
 def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutputMode.EXACT_MATCH):
     global match_result_cache
     match_cache_key = (blob_uri, query_text)
-    print(blob_uri, query_text, '| Is cached:', match_cache_key in match_result_cache)
     if match_cache_key in match_result_cache: return match_result_cache[match_cache_key]
     
     match_results = []
@@ -152,7 +151,6 @@ def query():
         file_input = data['file_input'] + '=' * ((4 - len(data['file_input']) % 4) % 4)
         input_file.write(base64.b64decode(file_input))
         input_hash = hash_util.get_md5_str(file_input)
-        print(input_hash)
 
     global input_hash_to_blob_uri
     if input_hash in input_hash_to_blob_uri:
