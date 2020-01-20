@@ -1,4 +1,5 @@
 import zlib
+import hashlib
 
 '''
 The default chunk size in bytes (128 kB).
@@ -16,3 +17,9 @@ def get_crc32(file, chunk_size=DEFAULT_CHUNK_SIZE):
 
 def get_crc32_str(file, chunk_size=DEFAULT_CHUNK_SIZE):
     return "%X" % get_crc32(file, chunk_size=chunk_size)
+
+def get_md5_str(string):
+    return hashlib.md5(string.encode()).hexdigest()
+
+def get_sha1_str(string):
+    return hashlib.sha1(string.encode()).hexdigest()
