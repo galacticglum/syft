@@ -8,6 +8,7 @@ import nltk
 import click
 
 from pathlib import Path
+from flask_caching import Cache
 from flask.cli import with_appcontext
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -15,6 +16,11 @@ from flask_cors import CORS
 
 db = SQLAlchemy()
 migrate = Migrate(db=db)
+cache = Cache(config={
+    'CACHE_TYPE': 'simple'
+})
+
+cors = CORS()
 
 def init_app(app):
     '''
@@ -23,9 +29,10 @@ def init_app(app):
         The app context to use for extension initialization.
     '''
 
-    CORS(app)
+    cors.init_app(app)
     db.init_app(app)
     migrate.init_app(app)
+    cache.init_app(app)
 
     app.cli.add_command(__init_db_command)
     nltk.download('punkt', quiet=True)

@@ -5,6 +5,7 @@ Defines the search-related API routes.
 
 import re
 import uuid
+import time
 import string
 import base64
 import argparse
@@ -23,10 +24,14 @@ from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
 
 import api.http_errors as exceptions
+from api.extensions import cache
 from flask import Blueprint, jsonify, request, current_app
 from api.validator import get_validator_data, validate_route, Schema, validators, fields
 
 bp = Blueprint('search', __name__, url_prefix='/api/search')
+transcription_cache = dict()
+match_result_cache = dict()
+input_hash_to_blob_uri = dict()
 
 class SearchOutputMode(Enum):
     '''
@@ -69,6 +74,8 @@ class QuerySchema(Schema):
 @bp.route('/', methods=['POST'])
 @validate_route(QuerySchema)
 def query():
+    start_time = time.time()
+
     data = get_validator_data()
     query_text = data['query'].strip().lower()
     search_output_mode = data['search_output_mode']
@@ -81,99 +88,124 @@ def query():
 
     with open(get_tmp_filepath(), 'w+b') as input_file:
         data['file_input'] = data['file_input'][data['file_input'].find(',')+1:]
-        file_input = data['file_input'] + '=' * ((4 - len(data['file_input']) % 4) % 4) #ugh
+        file_input = data['file_input'] + '=' * ((4 - len(data['file_input']) % 4) % 4)
         input_file.write(base64.b64decode(file_input))
-    
-    try:
-        audio, sample_rate = librosa.load(input_file.name)
-    except Exception as exception:
-        raise exceptions.AudioFileLoadError('file_input', exception)
+        input_hash = hash_util.get_crc32_str(input_file)
 
-    tmp_filepath = get_tmp_filepath()
+    global input_hash_to_blob_uri
+    if input_hash in input_hash_to_blob_uri:
+        blob_uri = input_hash_to_blob_uri[input_hash]
+        blob = bucket.blob(blob_uri.replace('gs://{}/', ''))
+    else:
+        try:
+            audio, sample_rate = librosa.load(input_file.name)
+        except Exception as exception:
+            raise exceptions.AudioFileLoadError('file_input', exception)
 
-    # Preprocess the audio data by converting it to a mono WAVE
-    audio_mono = librosa.to_mono(audio)
-    soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
+        tmp_filepath = get_tmp_filepath()
 
-    # Upload the file to GCS if it doesn't already exists
-    bucket_audio_root = current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_AUDIO_ROOT']
-    blob_root = bucket_audio_root
-    if blob_root and not bucket_audio_root.endswith('/'):
-        blob_root = bucket_audio_root + '/'
+        # Preprocess the audio data by converting it to a mono WAVE
+        audio_mono = librosa.to_mono(audio)
+        soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
 
-    with open(tmp_filepath, 'rb') as audio_file:
-        blob_filename = '{}{}'.format(blob_root, hash_util.get_crc32_str(audio_file)) 
-        blob = bucket.blob(blob_filename)
-        if not blob.exists():
-            blob.upload_from_file(audio_file, rewind=True)
+        # Upload the file to GCS if it doesn't already exists
+        bucket_audio_root = current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_AUDIO_ROOT']
+        blob_root = bucket_audio_root
+        if blob_root and not bucket_audio_root.endswith('/'):
+            blob_root = bucket_audio_root + '/'
 
-        blob_uri = 'gs://{}/{}'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'], blob_filename)
+        with open(tmp_filepath, 'rb') as audio_file:
+            blob_filename = '{}{}'.format(blob_root, hash_util.get_crc32_str(audio_file)) 
+            blob = bucket.blob(blob_filename)
+            if not blob.exists():
+                blob.upload_from_file(audio_file, rewind=True)
 
-    # Remove audio file now that we are done with it
-    tmp_filepath.unlink()
+            blob_uri = 'gs://{}/{}'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'], blob_filename)
+            input_hash_to_blob_uri[input_hash] = blob_uri
+
+        # Remove audio file now that we are done with it
+        tmp_filepath.unlink()
+
     Path(input_file.name).unlink()
 
-    # This configuration is predetermined...All audio files are converted 
-    # a WAVE format with 16-bit PCM encoding. Sample rate is determined using librosa.
-    config = types.RecognitionConfig(
-        encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
-        # sample_rate_hertz=sample_rate,
-        enable_speaker_diarization=True,
-        enable_automatic_punctuation=True,
-        language_code='en-US')
+    global transcription_cache
+    if blob_uri in transcription_cache:
+        op_result = transcription_cache[blob_uri]
+    else:
+        # This configuration is predetermined...All audio files are converted 
+        # a WAVE format with 16-bit PCM encoding. Sample rate is determined using librosa.
+        config = types.RecognitionConfig(
+            encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
+            # sample_rate_hertz=sample_rate,
+            enable_speaker_diarization=True,
+            enable_automatic_punctuation=True,
+            language_code='en-US')
 
-    operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
-    op_result = operation.result()
-    match_results = []
-    for result in op_result.results:
-        # Check if the response is valid, which happens if and only if the result alternatives
-        # is at least of length 1 AND the transcript is non-empty.
-        if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue    
-        sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
-        tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
-        for sentence in sentences:
-            sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
-            sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
+        operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
+        op_result = operation.result()
+        transcription_cache[blob_uri] = op_result
+        print('Loaded {} from cache'.format(blob_uri))
+    
+    global match_result_cache
+    match_cache_key = (blob_uri, query_text)
+    if match_cache_key in match_result_cache:
+        match_results = match_result_cache[match_cache_key]
+    else:
+        match_results = []
+        for result in op_result.results:
+            # Check if the response is valid, which happens if and only if the result alternatives
+            # is at least of length 1 AND the transcript is non-empty.
+            if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue    
+            sentences = [sentence.strip().lower() for sentence in nltk.tokenize.sent_tokenize(result.alternatives[0].transcript)]
+            tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
+            for sentence in sentences:
+                sublist_bounds = find_sub_list(tokens, sentence.split(' '))[0]
+                sentence_word_infos = result.alternatives[0].words[sublist_bounds[0]:sublist_bounds[1]+1]
 
-            matches = re.finditer(query_text, sentence)      
-            match_cache = set()
-            for match in matches:
-                if search_output_mode == SearchOutputMode.EXACT_MATCH:
-                    start_boundary = i = match.start()
-                    
-                    # Check if the match starts inside a word
-                    if i != 0 and sentence[i - 1] != ' ':
-                        start_boundary = sentence.rfind(' ', 0, i) + 1
+                matches = re.finditer(query_text, sentence)      
+                match_cache = set()
+                for match in matches:
+                    if search_output_mode == SearchOutputMode.EXACT_MATCH:
+                        start_boundary = i = match.start()
+                        
+                        # Check if the match starts inside a word
+                        if i != 0 and sentence[i - 1] != ' ':
+                            start_boundary = sentence.rfind(' ', 0, i) + 1
 
-                    end_boundary = j = match.end() - 1
+                        end_boundary = j = match.end() - 1
 
-                    # Check if the match ends inside a word
-                    if j != len(sentence) - 1 and sentence[j + 1] != ' ':
-                        end_boundary = sentence.find(' ', j)
-                        if end_boundary == -1:
-                            end_boundary = len(sentence) - 1
-                        else:
-                            end_boundary -= 1
+                        # Check if the match ends inside a word
+                        if j != len(sentence) - 1 and sentence[j + 1] != ' ':
+                            end_boundary = sentence.find(' ', j)
+                            if end_boundary == -1:
+                                end_boundary = len(sentence) - 1
+                            else:
+                                end_boundary -= 1
 
-                    # Add boundary
-                    boundary = (start_boundary, end_boundary)
-                    if boundary in match_cache: continue
-                    match_cache.add(boundary)
+                        # Add boundary
+                        boundary = (start_boundary, end_boundary)
+                        if boundary in match_cache: continue
+                        match_cache.add(boundary)
 
-                    start_word_index = sentence.count(' ', 0, start_boundary)
-                    end_word_index = sentence.count(' ', 0, end_boundary)
-                elif search_output_mode == SearchOutputMode.SENTENCE:
-                    start_word_index = 0
-                    end_word_index = len(sentence_word_infos) - 1
+                        start_word_index = sentence.count(' ', 0, start_boundary)
+                        end_word_index = sentence.count(' ', 0, end_boundary)
+                    elif search_output_mode == SearchOutputMode.SENTENCE:
+                        start_word_index = 0
+                        end_word_index = len(sentence_word_infos) - 1
 
-                confidence = result.alternatives[0].confidence
-                start_word = sentence_word_infos[start_word_index]
-                end_word = sentence_word_infos[end_word_index]
-                match_results.append({
-                    'start_time': get_word_time_seconds(start_word.start_time),
-                    'end_time': get_word_time_seconds(end_word.end_time),
-                    'confidence': confidence
-                })
+                    confidence = result.alternatives[0].confidence
+                    start_word = sentence_word_infos[start_word_index]
+                    end_word = sentence_word_infos[end_word_index]
+                    match_results.append({
+                        'start_time': get_word_time_seconds(start_word.start_time),
+                        'end_time': get_word_time_seconds(end_word.end_time),
+                        'confidence': confidence
+                    })
+
+        match_result_cache[match_cache_key] = match_results
+
+    end_time = time.time()
 
     access_link = blob.generate_signed_url(timedelta(hours=1))
-    return jsonify(status_code=201, message='Query was successful!', matches=match_results, access_link=access_link, success=True)
+    return jsonify(status_code=201, message='Query was successful!', matches=match_results, 
+        access_link=access_link, elapsed_time=end_time - start_time, success=True)
