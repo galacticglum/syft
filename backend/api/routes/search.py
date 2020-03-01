@@ -169,7 +169,7 @@ def context_query(query_text, blob_uri, op_result, search_output_mode=SearchOutp
 
             if len(sublist) == 0: continue
             sublist_bounds = sublist[0]
-            
+
             if search_output_mode == SearchOutputMode.EXACT_MATCH:
                 start_word_index = sublist_bounds[0]
                 end_word_index = sublist_bounds[1]
@@ -285,7 +285,6 @@ def query():
     print('Transcription took {:.3f} seconds'.format(time.time() - start_time))
     start_time = time.time()
 
-    data['is_context_search'] = True
     if not data['is_context_search']:
         match_results = string_query(query_text, blob_uri, op_result, search_output_mode)
     else:
