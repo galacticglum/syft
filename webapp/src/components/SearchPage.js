@@ -89,7 +89,7 @@ export default class SearchPage extends Component {
                                         </div>
                                     )}
                                     </Dropzone>
-                                    <Input type="text" id="inputSearchTerms" placeholder="Keywords" disabled={this.state.isLoading}
+                                    <Input type="text" id="inputSearchTerms" placeholder="Search" disabled={this.state.isLoading}
                                         value={this.state.searchTerm} onChange={this.searchTermsChanged} />
 
                                     <hr className="my-4" />
