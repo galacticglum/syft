@@ -134,7 +134,8 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
 @bp.route('/', methods=['POST'])
 @validate_route(QuerySchema)
 def query():
-    start_time = time.time()
+    route_start_time = start_time = time.time()
+    print('='*20)
 
     data = get_validator_data()
     query_text = data['query'].strip().lower()
@@ -152,6 +153,9 @@ def query():
         input_file.write(base64.b64decode(file_input))
         input_hash = hash_util.get_md5_str(file_input)
 
+        print('Decoding and writing input file took {:.3f} seconds'.format(time.time() - start_time)) 
+        start_time = time.time()
+
     input_hash_to_blob_uri = cache.get('input_hash_to_blob_uri') or dict()
     if input_hash in input_hash_to_blob_uri:
         blob_uri = input_hash_to_blob_uri[input_hash]
@@ -162,11 +166,17 @@ def query():
         except Exception as exception:
             raise exceptions.AudioFileLoadError('file_input', exception)
 
+        print('Libroa audio file loading took {:.3f} seconds'.format(time.time() - start_time))
+        start_time = time.time()
+
         tmp_filepath = get_tmp_filepath()
 
         # Preprocess the audio data by converting it to a mono WAVE
         audio_mono = librosa.to_mono(audio)
         soundfile.write(tmp_filepath, audio_mono, sample_rate, subtype='PCM_16', format='wav')
+
+        print('Audio processing and exporting took {:.3f} seconds'.format(time.time() - start_time))
+        start_time = time.time()
 
         # Upload the file to GCS if it doesn't already exists
         bucket_audio_root = current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_AUDIO_ROOT']
@@ -186,6 +196,9 @@ def query():
 
         # Remove audio file now that we are done with it
         tmp_filepath.unlink()
+
+        print('Uploading to GCS took {:.3f} seconds'.format(time.time() - start_time))
+        start_time = time.time()
 
     Path(input_file.name).unlink()
 
@@ -207,15 +220,20 @@ def query():
         op_result = operation.result()
         transcription_cache[blob_uri] = op_result
         cache.set('transcription_cache', transcription_cache)
-    
+
+    print('Transcription took {:.3f} seconds'.format(time.time() - start_time))
+    start_time = time.time()
+
     if not data['is_context_search']:
         match_results = string_query(query_text, blob_uri, op_result, search_output_mode)
     else:
         # Perform context-based search
         pass
 
+    print('Search took {:.3f} seconds'.format(time.time() - start_time))
+
     end_time = time.time()
 
     access_link = blob.generate_signed_url(timedelta(hours=1))
     return jsonify(status_code=201, message='Query was successful!', matches=match_results, 
-        access_link=access_link, elapsed_time=end_time - start_time, success=True)
+        access_link=access_link, elapsed_time=end_time - route_start_time, success=True)
