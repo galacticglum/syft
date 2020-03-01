@@ -1,5 +1,5 @@
 # syft
-An text-based audio search engine developed in Python for UofTHacks VII. Submission available on [Devpost](https://devpost.com/software/syft-dk4i8a).
+A text-based audio search engine developed in Python for UofTHacks VII. Submission available on [Devpost](https://devpost.com/software/syft-dk4i8a).
 
 <img src="https://challengepost-s3-challengepost.netdna-ssl.com/photos/production/software_photos/000/913/746/datas/original.png" width="800" style="text-align: center" />
 
