@@ -14,7 +14,7 @@ class ContextSearchModel:
             model_config = json.load(file)
             self._model = build_model(model_config, download=True)
     
-    def predict(self, values):
+    def predict(self, *values):
         '''
         Predicts the answer to a question given a context.
 
@@ -31,8 +31,7 @@ class ContextSearchModel:
         for query in values:
             contexts.append(query[0])
             questions.append(query[1])
-
-        
+   
         predictions_answers, predictions_start_indices, predictions_logits = self._model(contexts, questions)
         predictions = []
         for i in range(len(predictions_answers)):

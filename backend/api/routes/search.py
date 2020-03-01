@@ -24,7 +24,7 @@ from google.cloud.speech_v1p1beta1 import enums
 from google.cloud.speech_v1p1beta1 import types
 
 import api.http_errors as exceptions
-from api.extensions import cache
+from api.extensions import cache, get_context_search_model
 from flask import Blueprint, jsonify, request, current_app
 from api.validator import get_validator_data, validate_route, Schema, validators, fields
 
@@ -69,9 +69,22 @@ class QuerySchema(Schema):
     search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
     is_context_search = fields.BooleanField(default_value=False)
 
+class MatchCacheKey:
+    def __init__(self, blob_uri, query_text, is_context_search):
+        self.blob_uri = blob_uri
+        self.query_text = query_text
+        self.is_context_search = is_context_search
+
+    @property
+    def key(self):
+        return (self.blob_uri, self.query_text, self.is_context_search)
+
+    def __hash__(self):
+        return self.key.__hash__()
+
 def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutputMode.EXACT_MATCH):
     match_result_cache = cache.get('match_result_cache') or dict()
-    match_cache_key = (blob_uri, query_text)
+    match_cache_key = MatchCacheKey(blob_uri, query_text, False)
     if match_cache_key in match_result_cache: return match_result_cache[match_cache_key]
     
     match_results = []
@@ -120,11 +133,59 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
                 start_word = sentence_word_infos[start_word_index]
                 end_word = sentence_word_infos[end_word_index]
                 match_results.append({
+                    'matched_query': transcript,
                     'start_time': get_word_time_seconds(start_word.start_time),
                     'end_time': get_word_time_seconds(end_word.end_time),
                     'confidence': confidence,
                     'transcript': sentence[match.start():match.end()] 
                 })
+
+    match_result_cache[match_cache_key] = match_results
+    cache.set('match_result_cache', match_result_cache)
+
+    return match_results
+
+def context_query(query_text, blob_uri, op_result, search_output_mode=SearchOutputMode.EXACT_MATCH):
+    match_result_cache = cache.get('match_result_cache') or dict()
+    match_cache_key = MatchCacheKey(blob_uri, query_text, True)
+    if match_cache_key in match_result_cache: return match_result_cache[match_cache_key]
+    
+    match_results = []
+    for result in op_result.results:
+        # Check if the response is valid, which happens if and only if the result alternatives
+        # is at least of length 1 AND the transcript is non-empty.
+        if len(result.alternatives) == 0 or not result.alternatives[0].transcript: continue    
+        tokens = [word.strip().lower() for word in result.alternatives[0].transcript.split(' ') if word != '']
+        puncutation_translator = str.maketrans('', '', string.punctuation)
+        sanitized_tokens = [token.translate(puncutation_translator) for token in tokens]
+
+        predictions = get_context_search_model().predict((result.alternatives[0].transcript, query_text))
+        for prediction in predictions:
+            answer = prediction[0].strip()
+            answer_tokens = answer.lower().translate(puncutation_translator).split(' ')
+
+            if not answer: continue
+            sublist = find_sub_list(sanitized_tokens, answer_tokens)
+
+            if len(sublist) == 0: continue
+            sublist_bounds = sublist[0]
+            
+            if search_output_mode == SearchOutputMode.EXACT_MATCH:
+                start_word_index = sublist_bounds[0]
+                end_word_index = sublist_bounds[1]
+                transcript = answer
+            elif search_output_mode == SearchOutputMode.SENTENCE:
+                pass
+        
+            start_word = result.alternatives[0].words[start_word_index]
+            end_word = result.alternatives[0].words[end_word_index]
+            match_results.append({
+                'matched_query': query_text,
+                'start_time': get_word_time_seconds(start_word.start_time),
+                'end_time': get_word_time_seconds(end_word.end_time),
+                'confidence': prediction[2],
+                'transcript': transcript 
+            })
 
     match_result_cache[match_cache_key] = match_results
     cache.set('match_result_cache', match_result_cache)
@@ -224,11 +285,11 @@ def query():
     print('Transcription took {:.3f} seconds'.format(time.time() - start_time))
     start_time = time.time()
 
+    data['is_context_search'] = True
     if not data['is_context_search']:
         match_results = string_query(query_text, blob_uri, op_result, search_output_mode)
     else:
-        # Perform context-based search
-        pass
+        match_results = context_query(query_text, blob_uri, op_result, search_output_mode)
 
     print('Search took {:.3f} seconds'.format(time.time() - start_time))
 

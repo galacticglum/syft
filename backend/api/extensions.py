@@ -19,7 +19,9 @@ db = SQLAlchemy()
 migrate = Migrate(db=db)
 cache = Cache()
 cors = CORS()
-context_search_model = None
+_context_search_model = None
+
+def get_context_search_model(): return _context_search_model
 
 def init_app(app):
     '''
@@ -35,10 +37,10 @@ def init_app(app):
 
     app.cli.add_command(__init_db_command)
 
-    context_search_model = ContextSearchModel()
-    print('Finished building context search model.')
-    
     nltk.download('punkt', quiet=True)
+
+    global _context_search_model
+    _context_search_model = ContextSearchModel()
 
 @click.command('init-db')
 @with_appcontext

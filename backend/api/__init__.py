@@ -1,5 +1,4 @@
 import os
-
 from flask import Flask
 
 def create_app(instance_config_filename='local_config.py'):
