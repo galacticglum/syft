@@ -13,11 +13,13 @@ from flask.cli import with_appcontext
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from api.ml import ContextSearchModel
 
 db = SQLAlchemy()
 migrate = Migrate(db=db)
 cache = Cache()
 cors = CORS()
+context_search_model = None
 
 def init_app(app):
     '''
@@ -32,6 +34,10 @@ def init_app(app):
     cache.init_app(app)
 
     app.cli.add_command(__init_db_command)
+
+    context_search_model = ContextSearchModel()
+    print('Finished building context search model.')
+    
     nltk.download('punkt', quiet=True)
 
 @click.command('init-db')
