@@ -63,12 +63,6 @@ def find_sub_list(source, sublist):
 
     return results
 
-class QuerySchema(Schema):
-    file_input = fields.StringField(validators=[validators.DataRequired()])
-    query = fields.StringField(validators=[validators.DataRequired()])
-    search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
-    is_context_search = fields.BooleanField(default_value=False)
-
 class MatchCacheKey:
     def __init__(self, blob_uri, query_text, is_context_search):
         self.blob_uri = blob_uri
@@ -191,6 +185,12 @@ def context_query(query_text, blob_uri, op_result, search_output_mode=SearchOutp
     cache.set('match_result_cache', match_result_cache)
 
     return match_results
+
+class QuerySchema(Schema):
+    file_input = fields.StringField(validators=[validators.DataRequired()])
+    query = fields.StringField(validators=[validators.DataRequired()])
+    search_output_mode = fields.EnumField(SearchOutputMode, default_value=SearchOutputMode.EXACT_MATCH)
+    is_context_search = fields.BooleanField(default_value=False)
 
 @bp.route('/', methods=['POST'])
 @validate_route(QuerySchema)
