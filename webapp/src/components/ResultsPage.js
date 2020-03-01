@@ -34,8 +34,12 @@ export default class ResultsPage extends Component {
             return (
                 <a key={index} href="#" onClick={(event) => this.onMatchResultClicked(event, matchResult)}
                     className={"h-100 list-group-item list-group-item-action flex-column align-items-start " + extraClassName}>
-                    <p className="mb-1">{matchResult.start_time} - {matchResult.end_time} seconds</p>
-                    <small className="text-muted">{(matchResult.confidence * 100).toFixed(2)}% confident</small>
+                    {/* <p className="mb-1">{matchResult.start_time} - {matchResult.end_time} seconds</p>
+                    <p className="font-weight-bold">"{matchResult.transcript}"</p>
+                    <small className="text-muted">{(matchResult.confidence * 100).toFixed(2)}% confident</small> */}
+                    <h5 class="mb-1 card-title font-weight-bold">"{matchResult.transcript}"</h5>
+                    <h6 class="card-subtitle mb-2">{matchResult.start_time} - {matchResult.end_time} seconds</h6>
+                    <small class="text-muted card-text font-small">{(matchResult.confidence * 100).toFixed(2)}% confident</small>
                 </a>
             );
         });
