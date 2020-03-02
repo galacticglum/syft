@@ -126,12 +126,13 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
                 confidence = result.alternatives[0].confidence
                 start_word = sentence_word_infos[start_word_index]
                 end_word = sentence_word_infos[end_word_index]
+                transcript = sentence[match.start():match.end()]
                 match_results.append({
                     'matched_query': transcript,
                     'start_time': get_word_time_seconds(start_word.start_time),
                     'end_time': get_word_time_seconds(end_word.end_time),
                     'confidence': confidence,
-                    'transcript': sentence[match.start():match.end()] 
+                    'transcript':  transcript
                 })
 
     match_result_cache[match_cache_key] = match_results
