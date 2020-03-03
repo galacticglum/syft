@@ -136,7 +136,7 @@ def string_query(query_text, blob_uri, op_result, search_output_mode=SearchOutpu
                 })
 
     match_result_cache[match_cache_key] = match_results
-    cache.set('match_result_cache', match_result_cache)
+    cache.set('match_result_cache', match_result_cache, timeout=0)
 
     return match_results
 
@@ -183,7 +183,7 @@ def context_query(query_text, blob_uri, op_result, search_output_mode=SearchOutp
             })
 
     match_result_cache[match_cache_key] = match_results
-    cache.set('match_result_cache', match_result_cache)
+    cache.set('match_result_cache', match_result_cache, timeout=0)
 
     return match_results
 
@@ -254,7 +254,7 @@ def query():
 
             blob_uri = 'gs://{}/{}'.format(current_app.config['GOOGLE_CLOUD_STORAGE_BUCKET_NAME'], blob_filename)
             input_hash_to_blob_uri[input_hash] = blob_uri
-            cache.set('input_hash_to_blob_uri', input_hash_to_blob_uri)
+            cache.set('input_hash_to_blob_uri', input_hash_to_blob_uri, timeout=0)
 
         # Remove audio file now that we are done with it
         tmp_filepath.unlink()
@@ -281,7 +281,7 @@ def query():
         operation = speech_client.long_running_recognize(config, types.RecognitionAudio(uri=blob_uri))
         op_result = operation.result()
         transcription_cache[blob_uri] = op_result
-        cache.set('transcription_cache', transcription_cache)
+        cache.set('transcription_cache', transcription_cache, timeout=0)
 
     print('Transcription took {:.3f} seconds'.format(time.time() - start_time))
     start_time = time.time()
