@@ -89,7 +89,7 @@ tensorflow-estimator==1.15.1
 termcolor==1.1.0
 tqdm==4.41.1
 urllib3==1.25.7
-uvicorn==0.11.1
+uvicorn==0.11.7
 websockets==8.1
 Werkzeug==0.16.0
 wincertstore==0.2
